@@ -1,2 +1,2 @@
 # MixDA
-My research which is related to the mixup strategy for Domain Adaptation
+My research related to the mixup strategy for Domain Adaptation
