@@ -1,0 +1,30 @@
+seed: 1126
+model:
+    init_labeler: null
+    init_config: null
+    config:
+        source: 1
+        target: null
+        mix_ratio: null
+train:
+    bsize: 32
+    lr: 0.01
+    val_ratio: 0.1
+    store_interval: 10
+    source:
+        num_epoches: 50
+    target:
+        num_epoches: 500
+eval:
+    bsize: 64
+config_hash_table: /tmp2/cllab/chu/DA/data/config_hash_table.pkl
+datasets:
+    OfficeHome:
+        path: /tmp2/cllab/chu/DA/data/OfficeHome
+        num_classes: 65
+        domains:
+                - Art
+                - Clipart
+                - Product
+                - RealWorld
+
