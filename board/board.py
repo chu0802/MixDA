@@ -1,13 +1,15 @@
 from tensorboard import program
 import logging
-from util import config_loading
 
 import argparse
 import pickle as pk
 import os
 from pathlib import Path, PurePath
 from random import randint
+import sys
+sys.path.append('../src/')
 
+from util import config_loading
 
 class TensorboardTool:
     def __init__(self, logdir, host):
