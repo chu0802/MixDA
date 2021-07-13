@@ -31,7 +31,7 @@ def argument_parsing():
 
     return parser.parse_args()
 
-def list_contents(model_path, hashtable_path):
+def get_contents(model_path, hashtable_path):
     # Sorted according to the creating date
     dirs = [PurePath(x).name for x in sorted(Path(model_path).iterdir(), key=os.path.getmtime)]
     # Get the hashtable (mapping hashstr to model config)
@@ -39,16 +39,21 @@ def list_contents(model_path, hashtable_path):
         hashtable = pk.load(f)
 
     # List all the logging file
-    print('Options')
-    log_path = []
+    log_path, opts = [], []
     for i, hashstr in enumerate(dirs):
-        print('\t(%d): %s' % (i, str(hashtable[hashstr])))
         log_path.append(model_path / hashstr / 'log')
+        opts.append('\t(%d): %s' % (i, str(hashtable[hashstr])))
 
+    return log_path, opts
+
+def list_contents(opts):
+    os.system('clear')
+    print('\n', '-'*10, 'Tensorboard Binding System', '-'*10, '\n')
+
+    print('Options:')
+    for opt in opts: 
+        print(opt)
     print('\t(r): Refresh the options')
-
-    return log_path
-
 
 if __name__ == '__main__':
     # Get configuration
@@ -56,17 +61,23 @@ if __name__ == '__main__':
     args.config = config_loading(args.config) 
     model_path = Path(args.config['datasets'][args.dataset]['path']) / 'model'
 
-    print('\n', '-'*10, 'Tensorboard Binding System', '-'*10, '\n')
+    log_path, opts = get_contents(model_path, args.config['hash_table_path'])
+    list_contents(opts)
     # Start binding
     while True:
-        log_path = list_contents(model_path, args.config['hash_table_path'])
         print('Select an option: ', end='')
-        opt = input()
-        if opt == 'r':
-            log_path = list_contents(model_path, args.config['hash_table_path'])
-        if opt.isdigit() and (0 <= int(opt) < len(log_path)):
-            tftool = TensorboardTool(str(log_path[int(opt)]), args.host)
-            tftool.run()
+        try:
+            opt = input()
+            if opt == 'r':
+                log_path, opts = get_contents(model_path, args.config['hash_table_path'])
+                list_contents(opts)
+            if opt.isdigit() and (0 <= int(opt) < len(log_path)):
+                tftool = TensorboardTool(str(log_path[int(opt)]), args.host)
+                tftool.run()
+        except KeyboardInterrupt:
+            break
+    print('\nShutting Down')
+
 
             
 
