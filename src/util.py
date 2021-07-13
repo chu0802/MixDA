@@ -4,9 +4,6 @@ import hashlib
 from pathlib import Path, PurePath
 import os
 
-def config_hashing(m_cfg):
-    return hashlib.md5(str(m_cfg).encode('utf-8')).hexdigest()
-
 def config_loading(cfg_path):
     return yaml.load(open(cfg_path, 'r'), Loader=yaml.FullLoader) if cfg_path is not None else None
 
@@ -70,7 +67,7 @@ class model_handler:
             else:
                 print('\tInvalid')
     def update(self, cfg):
-        hashstr = config_hashing(cfg)
+        hashstr = hashlib.md5(str(cfg).encode('utf-8')).hexdigest()
         self.hash_table[hashstr] = cfg
         with open(self.hash_table_path, 'wb') as f:
             pk.dump(self.hash_table, f)
