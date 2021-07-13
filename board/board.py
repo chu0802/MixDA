@@ -25,7 +25,7 @@ class TensorboardTool:
 
 def argument_parsing():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default='config.yaml')
+    parser.add_argument('-c', '--config', type=str, default='../config.yaml')
     parser.add_argument('-d', '--dataset', type=str, default='OfficeHome')
     parser.add_argument('--host', type=str, default='clais1.csie.org')
 
