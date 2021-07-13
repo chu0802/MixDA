@@ -13,7 +13,7 @@ def arguments_parsing():
     parser = argparse.ArgumentParser()
     
     parser.add_argument('-dev', '--device', type=int, default=5)
-    parser.add_argument('-c', '--config', type=str, default='./config.yaml')
+    parser.add_argument('-c', '--config', type=str, default='./config.yml')
     parser.add_argument('-d', '--dataset', type=str, default='OfficeHome')
 
     # Mode Controlling
