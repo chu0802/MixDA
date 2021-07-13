@@ -17,7 +17,7 @@ train:
         num_epoches: 500
 eval:
     bsize: 64
-config_hash_table: /tmp2/cllab/chu/DA/data/config_hash_table.pkl
+hash_table_path: /tmp2/cllab/chu/DA/data/config_hash_table.pkl
 datasets:
     OfficeHome:
         path: /tmp2/cllab/chu/DA/data/OfficeHome
