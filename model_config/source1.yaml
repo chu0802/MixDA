@@ -1,6 +1,0 @@
-init_labeler: null
-init_config: null
-config:
-    source: 1
-    target: null
-    mix_ratio: null

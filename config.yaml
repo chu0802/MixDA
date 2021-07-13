@@ -2,10 +2,9 @@ seed: 1126
 model:
     init_labeler: null
     init_config: null
-    config:
-        source: 1
-        target: null
-        mix_ratio: null
+    source: 1
+    target: null
+    mix_ratio: null
 train:
     bsize: 32
     lr: 0.01
