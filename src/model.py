@@ -7,7 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 import os
 from pathlib import Path
 
-from util import config_hashing, config_handler
+from util import config_hashing
 
 class ResBase(nn.Module):
     def __init__(self):
@@ -66,14 +66,10 @@ class Model:
         self.optimizer = get_optimizer((self.F, self.B, self.C), args.config['train']['lr'])
         self.args = args
 
-        self.model_dir = Path(self.args.dataset['path']) / 'model'
+        self.model_dir = self.args.mdh.model_dir
 
         if logging:
-            self.save_hashstr = config_hashing(args.config['model'])
-            config_handler(self.save_hashstr, args)
-
-            log_dir = self.model_dir / self.save_hashstr / 'log'
-            log_dir.mkdir(parents=True, exist_ok=True)
+            log_dir = self.args.mdh.update(args.config['model'])['log_dir']
             self.logger = SummaryWriter(log_dir)
 
     def to(self):
