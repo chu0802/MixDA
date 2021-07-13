@@ -69,11 +69,12 @@ class Model:
         self.model_dir = Path(self.args.dataset['path']) / 'model'
 
         if logging:
-            log_dir = self.model_dir / self.save_config / 'log'
+            self.save_hashstr = config_hashing(args.config['model'])
+            config_handler(self.save_hashstr, args)
+
+            log_dir = self.model_dir / self.save_hashstr / 'log'
             log_dir.mkdir(parents=True, exist_ok=True)
             self.logger = SummaryWriter(log_dir)
-            self.save_config = config_hashing(args.config['model'])
-            config_handler(self.save_config, args.config['config_hash_table'])
 
     def to(self):
         self.F = self.F.to(self.args.device)
@@ -101,12 +102,12 @@ class Model:
             'epoch': epoch
         }
         ckpt_name = str(epoch) if epoch else 'final'
-        torch.save(states, self.model_dir / self.save_config / (ckpt_name + '.pt'))
+        torch.save(states, self.model_dir / self.save_hashstr / (ckpt_name + '.pt'))
 
     def load(self, epoch=None, m_cfg=None):
         # load a specified model
         if m_cfg:
-            load_config = (
+            load_hashstr = (
                 m_cfg
                 # load by a hash string
                 if isinstance(m_cfg, str)
@@ -114,9 +115,9 @@ class Model:
                 else config_hashing(m_cfg)
             )
         else:
-            load_config = config_hashing(args.config['model'])
+            load_hashstr = config_hashing(args.config['model'])
         ckpt_name = str(epoch) if epoch else 'final'
-        states = torch.load(self.model_dir / load_config / (ckpt_name + '.pt'), map_location='cpu')
+        states = torch.load(self.model_dir / load_hashstr / (ckpt_name + '.pt'), map_location='cpu')
 
         self.F.load_state_dict(states['F'])
         self.B.load_state_dict(states['B'])
@@ -147,7 +148,6 @@ class CrossEntropyLabelSmooth(nn.Module):
         self.reduction = reduction
         self.logsoftmax = nn.LogSoftmax(dim=1)
 
-        self.is_mix = 0 < args.config['model']['config']['mix_ratio'] < 1
         self.mix = args.config['model']['config']['mix_ratio']
     def _scatter_truth(self, truth):
         truth = torch.zeros((len(truth), self.num_classes)).scatter_(1, truth.unsqueeze(1).cpu(), 1)
@@ -162,7 +162,7 @@ class CrossEntropyLabelSmooth(nn.Module):
             truth: ground truth labels with shape (num_classes)
         """
         log_probs = self.logsoftmax(pred)
-        if self.is_mix:
+        if self.mix:
             s_truth, t_truth = truth
             s_truth = self._scatter_truth(s_truth)
             t_truth = self._scatter_truth(t_truth)

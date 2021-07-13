@@ -12,10 +12,15 @@ def config_loading(cfg_path):
 def config_hashing(m_cfg):
     return hashlib.md5(str(m_cfg).encode('utf-8')).hexdigest()
 
-def config_handler(hashstr, hash_table_path):
+def config_handler(hashstr, args):
+    m_cfg = args.config['model']
+    hash_table_path = args.config['hash_table_path']
     # storing config before hashing
-    with open(hash_table_path, 'r') as f:
-        table = pk.load(f)
+    try:
+        with open(hash_table_path, 'rb') as f:
+            table = pk.load(f)
+    except:
+        table = {}
     table[hashstr] = m_cfg
-    with open(hash_table_path, 'w') as f:
+    with open(hash_table_path, 'wb') as f:
         pk.dump(table, f)

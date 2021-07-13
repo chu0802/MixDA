@@ -84,8 +84,8 @@ if __name__ == '__main__':
         print('Accuracy: %.2f%%' % (100*cal_acc(dloaders['target_test'], model, args, verbose=True)))
     elif args.mode == 'mixup':
         model = Model(args, logging=False)
-        init_labeler = load_config(args.config['model']['init_labeler'])
-        model.load(m_cfg=init_labeler)
+        args.config['model']['init_labeler'] = config_loading(args.config['model']['init_labeler'])
+        model.load(m_cfg=args.config['model']['init_labeler'])
         model.to()
         pred, _ = prediction(dloaders['target_train'], model, args, verbose=True)
 

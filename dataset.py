@@ -55,38 +55,42 @@ def load_data(args):
     dsets = {}
     dloaders = {}
 
-    source_path = Path(args.dataset['path']) / args.dataset['domains'][args.config['model']['config']['source']]
-    target_path = Path(args.dataset['path']) / args.dataset['domains'][args.config['model']['config']['target']]
+    source_exist = args.config['model']['config']['source']
+    target_exist = args.config['model']['config']['target']
 
-    dsets['source'] = ImageFolder(source_path, transform=train_transform())
+    if source_exist is not None:
+        source_path = Path(args.dataset['path']) / args.dataset['domains'][args.config['model']['config']['source']]
+        dsets['source'] = ImageFolder(source_path, transform=train_transform())
 
-# Using the whole training dataset for training
-    dloaders['source'] = DataLoader(dsets['source'], 
-                                    batch_size=args.config['train']['bsize'], 
-                                    shuffle=True, num_workers=4, pin_memory=True)
-    dsize = len(dsets['source'])
-    val_size = int(dsize * args.config['train']['val_ratio'])
-
-    dsets['source_train'], dsets['source_val'] = random_split(dsets['source'], [dsize - val_size, val_size])
-
-    dloaders['source_train'] = DataLoader(dsets['source_train'], 
-                                    batch_size=args.config['train']['bsize'], 
-                                    shuffle=True, num_workers=4, pin_memory=True)
-
-# Selecting appropriate hyperparameters
-    dloaders['source_val'] = DataLoader(dsets['source_val'], 
-                                    batch_size=args.config['eval']['bsize'], 
-                                    shuffle=False, num_workers=4, pin_memory=True)
-
-    dsets['target_train'] = ImageFolder(target_path, transform=train_transform())
-    dloaders['target_train'] = DataLoader(dsets['target_train'], 
+        # Using the whole training dataset for training
+        dloaders['source'] = DataLoader(dsets['source'], 
                                         batch_size=args.config['train']['bsize'], 
-                                        shuffle=False, num_workers=4, pin_memory=True)
+                                        shuffle=True, num_workers=4, pin_memory=True)
+        dsize = len(dsets['source'])
+        val_size = int(dsize * args.config['train']['val_ratio'])
 
-    dsets['target_test'] = ImageFolder(target_path, transform=test_transform())
-    dloaders['target_test'] = DataLoader(dsets['target_test'], 
+        dsets['source_train'], dsets['source_val'] = random_split(dsets['source'], [dsize - val_size, val_size])
+
+        dloaders['source_train'] = DataLoader(dsets['source_train'], 
+                                        batch_size=args.config['train']['bsize'], 
+                                        shuffle=True, num_workers=4, pin_memory=True)
+
+        # Selecting appropriate hyperparameters
+        dloaders['source_val'] = DataLoader(dsets['source_val'], 
                                         batch_size=args.config['eval']['bsize'], 
                                         shuffle=False, num_workers=4, pin_memory=True)
+
+    if target_exist is not None:
+        target_path = Path(args.dataset['path']) / args.dataset['domains'][args.config['model']['config']['target']]
+        dsets['target_train'] = ImageFolder(target_path, transform=train_transform())
+        dloaders['target_train'] = DataLoader(dsets['target_train'], 
+                                            batch_size=args.config['train']['bsize'], 
+                                            shuffle=False, num_workers=4, pin_memory=True)
+
+        dsets['target_test'] = ImageFolder(target_path, transform=test_transform())
+        dloaders['target_test'] = DataLoader(dsets['target_test'], 
+                                            batch_size=args.config['eval']['bsize'], 
+                                            shuffle=False, num_workers=4, pin_memory=True)
 
     return dsets, dloaders
 
