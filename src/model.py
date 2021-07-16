@@ -7,8 +7,6 @@ from torch.utils.tensorboard import SummaryWriter
 import os
 from pathlib import Path
 
-from util import config_hashing
-
 class ResBase(nn.Module):
     def __init__(self):
         super(ResBase, self).__init__()
@@ -62,24 +60,26 @@ class Model:
         self.F = ResBase()
         self.B = BottleNeck(self.F.in_features, bottleneck_dim)
         self.C = Classifier(bottleneck_dim, args.dataset['num_classes'])
-
         self.optimizer = get_optimizer((self.F, self.B, self.C), args.config['train']['lr'])
+
         self.args = args
 
-        self.model_dir = self.args.mdh.model_dir
-
         if logging:
-            log_dir = self.args.mdh.update(args.config['model'])['log_dir']
-            self.logger = SummaryWriter(log_dir)
+            self.args.mdh.update(args.config['model'])
+            self.ckpt_dir = self.args.mdh.get_ckpt_dir(args.config['model'])
+            self.log_dir = self.args.mdh.get_log(args.config['model'])
+            self.logger = SummaryWriter(self.log_dir)
 
     def to(self):
         self.F = self.F.to(self.args.device)
         self.B = self.B.to(self.args.device)
         self.C = self.C.to(self.args.device)
+
     def train(self):
         self.F.train()
         self.B.train()
         self.C.train()
+
     def eval(self):
         self.F.eval()
         self.B.eval()
@@ -97,23 +97,12 @@ class Model:
             'C': self.C.state_dict(),
             'epoch': epoch
         }
-        ckpt_name = str(epoch) if epoch else 'final'
-        torch.save(states, self.model_dir / self.save_hashstr / (ckpt_name + '.pt'))
+        ckpt_file = (str(epoch) if epoch else 'final') + '.pt'
+        torch.save(states, self.ckpt_dir / ckpt_file)
 
-    def load(self, epoch=None, m_cfg=None):
-        # load a specified model
-        if m_cfg:
-            load_hashstr = (
-                m_cfg
-                # load by a hash string
-                if isinstance(m_cfg, str)
-                #load by a configuration
-                else config_hashing(m_cfg)
-            )
-        else:
-            load_hashstr = config_hashing(args.config['model'])
-        ckpt_name = str(epoch) if epoch else 'final'
-        states = torch.load(self.model_dir / load_hashstr / (ckpt_name + '.pt'), map_location='cpu')
+    def load(self, cfg, epoch=None):
+        ckpt_file = self.args.mdh.get_ckpt(cfg, epoch)
+        states = torch.load(ckpt_file, map_location='cpu')
 
         self.F.load_state_dict(states['F'])
         self.B.load_state_dict(states['B'])
@@ -144,7 +133,7 @@ class CrossEntropyLabelSmooth(nn.Module):
         self.reduction = reduction
         self.logsoftmax = nn.LogSoftmax(dim=1)
 
-        self.mix = args.config['model']['config']['mix_ratio']
+        self.mix = args.config['model']['mix_ratio']
     def _scatter_truth(self, truth):
         truth = torch.zeros((len(truth), self.num_classes)).scatter_(1, truth.unsqueeze(1).cpu(), 1)
         truth = truth.to(self.device)

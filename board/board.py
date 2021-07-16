@@ -12,18 +12,29 @@ sys.path.append('../src/')
 from util import config_loading, model_handler
 
 class TensorboardTool:
-    def __init__(self, logdir, host):
-        self.dir_path = logdir
+    def __init__(self, host):
+        self.processes = {}
         self.host = host
 
-    def run(self):
+    def run(self, logdir, cfg):
         # Remove http messages
         log = logging.getLogger('werkzeug').setLevel(logging.ERROR)
         # Start tensorboard server
         tb = program.TensorBoard()
-        tb.configure(argv=[None, '--logdir', self.dir_path, '--host', self.host])
+        tb.configure(argv=[None, '--logdir', logdir, '--host', self.host])
         url = tb.launch()
-        print('TensorBoard at %s \n' % url)
+        self.processes[cfg] = url
+
+    def list(self, cont='c'):
+        print('All starting up processes: ')
+        for k, v in self.processes.items():
+            print('%s: %s' % (k, v))
+
+        print('press %s to continue...' % (cont))
+        while True:
+            opt = input()
+            if opt == cont:
+                break
 
 def argument_parsing():
     parser = argparse.ArgumentParser()
@@ -32,7 +43,6 @@ def argument_parsing():
     parser.add_argument('--host', type=str, default='clais1.csie.org')
 
     return parser.parse_args()
-
 
 if __name__ == '__main__':
     # Get configuration
@@ -45,15 +55,16 @@ if __name__ == '__main__':
         model_path, 
         args.config['hash_table_path'], 
         title='Tensorboard Binding System',
-        allow_none=False
     )
-    mdh.list()
 
+    tftool = TensorboardTool(args.host)
     while True:
-        try:
-            model = mdh.select(slogan='Select a model')
-            tftool = TensorboardTool(str(model['log_dir']), args.host)
-            tftool.run()
-        except KeyboardInterrupt:
-            break
+        cfg = mdh.select_config()
+        if cfg:
+            log_dir = mdh.get_log(cfg)
+            tftool.run(str(log_dir), cfg=str(cfg))
+        else:
+            tftool.list()
+        
+            
     print('\nShutting Down')

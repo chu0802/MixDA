@@ -3,75 +3,88 @@ import pickle as pk
 import hashlib
 from pathlib import Path, PurePath
 import os
+from collections import defaultdict
 
 def config_loading(cfg_path):
     return yaml.load(open(cfg_path, 'r'), Loader=yaml.FullLoader) if cfg_path is not None else None
 
 class model_handler:
-    def __init__(self, model_dir, hash_table_path, title=None, allow_none=False):
-        self.model_dir = model_dir
-
+    def __init__(self, model_dir, hash_table_path, title=None):
+        self.model_dir = Path(model_dir)
         self.hash_table_path = hash_table_path
         self.title = title
-        self.allow_none = allow_none
-
-        self.hash_table = {}
+        self.hash_table = defaultdict(dict)
         self.models = []
-        self.load()
+        self._load()
         
-    def load(self):
+    def _load(self):
+        # make the model directory
+        self.model_dir.mkdir(parents=True, exist_ok=True)
+
         # Load the hash table (mapping hashstr to model config)
-        self.hash_table = (
-            pk.load(open(self.hash_table_path, 'rb'))
-            if Path(self.hash_table_path).exists()
-            else {}
-        )
+        if Path(self.hash_table_path).exists():
+            with open(self.hash_table_path, 'rb') as f:
+                self.hash_table = pk.load(f)
+            self.models = list(sorted(
+                self.hash_table.values(),
+                key=lambda item: os.path.getmtime(item['ckpt_dir'])
+            ))
 
-        # Sorted according to the modifying date
-        dirs = [PurePath(x).name for x in sorted(Path(self.model_dir).iterdir(), key=os.path.getmtime)]
+    def _list(self, slogan=None):
+        self._load()
 
-        self.models.clear()
-        # List all the logging file
-        for i, hashstr in enumerate(dirs):
-            model = {}
-            model['log_dir'] = self.model_dir / hashstr / 'log'
-            model['config'] = self.hash_table[hashstr]
-
-            self.models.append(model)
-
-    def list(self):
         os.system('clear')
         if self.title:
             print('\n', '-'*10, self.title, '-'*10, '\n')
-
         print('Options:')
-        for i, model in enumerate(self.models): 
-            print('\t(%d): %s' % (i, str(model['config'])))
+
+        for i, val in enumerate(self.models):
+            print('\t(%d): %s' % (i, str(val['config'])))
+
         print('\t(r): Refresh the options')
+        print('\t(n): None (When binding tensorboard, list all processes)')
+        print(slogan if slogan else 'Select an option', end=': ')
 
-        if self.allow_none:
-            print('\t(n): None')
+    def _hashing(self, cfg):
+        return hashlib.md5(str(cfg).encode('utf-8')).hexdigest()
 
-    def select(self, slogan=None):
+    def _select(self, slogan=None):
+        self._list(slogan=slogan)
         while True:
-            if slogan:
-                print(slogan, end=': ')
             opt = input()
             if opt == 'r':
-                self.load()
-                self.list()
-            elif self.allow_none and opt == 'n':
+                self._list(slogan=slogan)
+            elif opt == 'n':
                 return None
             elif opt.isdigit() and (0 <= int(opt) < len(self.models)):
                 return self.models[int(opt)]
             else:
-                print('\tInvalid')
+                print('\tInvalid.')
+
+    def select_config(self):
+        model = self._select('Select a model')
+        return model['config'] if model else None
+
+    def get_ckpt_dir (self, cfg):
+        return self.hash_table[self._hashing(cfg)]['ckpt_dir']
+
+    def get_ckpt(self, cfg, epoch=None):
+        ckpt_dir = self.get_ckpt_dir(cfg)
+        return ckpt_dir / ((str(epoch) if epoch else 'final') + '.pt')
+
+    def get_log(self, cfg):
+        return self.get_ckpt_dir(cfg) / 'log'
+
     def update(self, cfg):
-        hashstr = hashlib.md5(str(cfg).encode('utf-8')).hexdigest()
-        self.hash_table[hashstr] = cfg
+        hashstr = self._hashing(cfg)
+
+        self.hash_table[hashstr]['config'] = cfg
+        self.hash_table[hashstr]['ckpt_dir'] = self.model_dir / hashstr
+
+        # make the log directory
+        (self.model_dir / hashstr / 'log').mkdir(parents=True, exist_ok=True)
+
         with open(self.hash_table_path, 'wb') as f:
             pk.dump(self.hash_table, f)
-        log_dir = self.model_dir / hashstr / 'log'
-        log_dir.mkdir(parents=True, exist_ok=True)
-        self.load()
-        return self.model[-1]
+
+        self._load()

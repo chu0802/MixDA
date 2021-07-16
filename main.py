@@ -1,6 +1,8 @@
 import argparse
 import torch
 import numpy as np
+import random
+from pathlib import Path
 import sys
 sys.path.append('./src/')
 
@@ -8,7 +10,7 @@ from dataset import load_data, load_mix_data
 from train import source_train_full, source_train_val, target_train
 from model import CrossEntropyLabelSmooth, Model
 from evaluation import cal_acc, prediction
-from util import config_loading, model_config_loading
+from util import config_loading, model_handler
 
 def arguments_parsing():
     parser = argparse.ArgumentParser()
@@ -30,8 +32,6 @@ def arguments_parsing():
 
     model_args = ['source', 'target', 'mix_ratio']
 
-    # Model Loading
-    parser.add_argument('-lp', '--loading_path', type=str, default=None)
     args = parser.parse_args()
     return args, model_args
 
@@ -57,15 +57,15 @@ if __name__ == '__main__':
     # Initialize a modle handler
     args.mdh = model_handler(
         Path(args.dataset['path']) / 'model', 
-        args.config['hash_table_path'],
-        allow_none=True
+        args.config['hash_table_path']
     )
 
     # Reproduction
-    torch.cuda.manual_seed(args.config['seed'])
-    torch.manual_seed(args.config['seed'])
+    random.seed(args.config['seed'])
     np.random.seed(args.config['seed'])
-    torch.backends.cudnn.benchmark = True
+    torch.manual_seed(args.config['seed'])
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     # Data Loading
     dsets, dloaders = load_data(args)
@@ -80,17 +80,14 @@ if __name__ == '__main__':
         source_train_full(best_iter, dloaders['source'], criterion, args, logging=True)
     elif args.mode == 'target_test':
         model = Model(args, logging=False)
-        m_cfg = config_loading(args.loading_path)
-        model.load(m_cfg=m_cfg)
+        args.config['model'] = args.mdh.select_config()
+        model.load(args.config['model'])
         model.to()
         print('Accuracy: %.2f%%' % (100*cal_acc(dloaders['target_test'], model, args, verbose=True)))
     elif args.mode == 'mixup':
         model = Model(args, logging=False)
-
-        args.mdh.list()
-        args.config['model']['init_labeler'] = args.mdh.select(slogan='Select an initial labeler')['config']
-
-        model.load(m_cfg=args.config['model']['init_labeler'])
+        args.config['model']['init_labeler'] = args.mdh.select_config()
+        model.load(args.config['model']['init_labeler'])
         model.to()
 
         pred, _ = prediction(dloaders['target_train'], model, args, verbose=True)
