@@ -27,7 +27,7 @@ class model_handler:
                 self.hash_table = pk.load(f)
             self.models = list(sorted(
                 self.hash_table.values(),
-                key=lambda item: os.path.getmtime(item['ckpt_dir'])
+                key=lambda item: os.path.getctime(item['ckpt_dir'])
             ))
 
     def _list(self, slogan=None):
