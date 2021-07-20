@@ -1,10 +1,17 @@
 seed: 1126
 model:
-    init_labeler: null
-    init_config: null
-    source: 1
+    source: 0
     target: null
-    mix_ratio: null
+    strategy: soucre_only
+    strategy_config: null
+
+strategy:
+    source_only: null
+    mixup:
+        init_labeler: null
+        mix_ratio: 0.8
+    target_unify: null
+
 train:
     bsize: 32
     lr: 0.01

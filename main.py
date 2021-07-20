@@ -20,7 +20,7 @@ def arguments_parsing():
     parser.add_argument('-d', '--dataset', type=str, default='OfficeHome')
 
     # Mode Controlling
-    parser.add_argument('-m', '--mode', type=str, default='source_train', choices=['source_train', 'target_test', 'mixup'])
+    parser.add_argument('-m', '--mode', type=str, default='source_train', choices=['train', 'test'])
 
     # Source training
     parser.add_argument('-se', '--source_num_epoches', type=int, default=-1)
@@ -28,13 +28,12 @@ def arguments_parsing():
     # Model Config
     parser.add_argument('-s', '--source', type=int, default=None)
     parser.add_argument('-t', '--target', type=int, default=None)
-    parser.add_argument('-mr', '--mix_ratio', type=float, default=None)
+    parser.add_argument('-stg', '--strategy', type=str, choices=['source_only', 'mixup', 'target_unify'])
 
-    model_args = ['source', 'target', 'mix_ratio']
+    model_args = ['source', 'target', 'strategy']
 
     args = parser.parse_args()
     return args, model_args
-
 
 if __name__ == '__main__':
     # Argument Processing
@@ -69,30 +68,46 @@ if __name__ == '__main__':
 
     # Data Loading
     dsets, dloaders = load_data(args)
-    criterion = CrossEntropyLabelSmooth(args)
 
     # Mode Choosing
-    if args.mode == 'source_train':
-        if args.source_num_epoches < 0:
-            best_iter = source_train_val(dloaders, criterion, args, logging=True)
-        else:
-            best_iter = args.source_num_epoches
-        source_train_full(best_iter, dloaders['source'], criterion, args, logging=True)
-    elif args.mode == 'target_test':
-        model = Model(args, logging=False)
+    if args.mode == 'train':
+        stg_config = args.config['strategy'][args.strategy]
+        if args.strategy == 'source_only':
+            args.config['model']['strategy_config'] = stg_config
+            criterion = CrossEntropyLabelSmooth(args)
+
+            if args.source_num_epoches < 0:
+                best_iter = source_train_val(dloaders, criterion, args, logging=True)
+            else:
+                best_iter = args.source_num_epoches
+            source_train_full(best_iter, dloaders['source'], criterion, args, logging=True)
+
+        elif args.strategy == 'mixup':
+            stg_config['init_labeler'] = args.mdh.select_config()
+
+            # TODO: change to a more generalize way.
+            print('type in the mixup ratio: ', end='')
+            stg_config['mix_ratio'] = float(input())
+            args.config['model']['strategy_config'] = stg_config
+
+            criterion = CrossEntropyLabelSmooth(args)
+
+            model = Model(args, num_classes=args.dataset['num_classes'], logging=False)
+            model.load(args.config['model']['strategy_config']['init_labeler'])
+            model.to()
+
+            pred, _ = prediction(dloaders['target_train'], model, args, verbose=True)
+
+            mixdset, mixdloader = load_mix_data(dsets['source'], dsets['target_train'], pred, args)
+            dsets['mix'], dloaders['mix'] = mixdset, mixdloader
+
+            target_train(dloaders, criterion, args, logging=True)
+        elif args.strategy == 'target_unify':
+            args.config['model']['strategy_config'] = stg_config
+            criterion = CrossEntropyLabelSmooth(args)
+    else:
+        model = Model(args, num_classes=args.dataset['num_classes'], logging=False)
         args.config['model'] = args.mdh.select_config()
         model.load(args.config['model'])
         model.to()
         print('Accuracy: %.2f%%' % (100*cal_acc(dloaders['target_test'], model, args, verbose=True)))
-    elif args.mode == 'mixup':
-        model = Model(args, logging=False)
-        args.config['model']['init_labeler'] = args.mdh.select_config()
-        model.load(args.config['model']['init_labeler'])
-        model.to()
-
-        pred, _ = prediction(dloaders['target_train'], model, args, verbose=True)
-
-        mixdset, mixdloader = load_mix_data(dsets['source'], dsets['target_train'], pred, args)
-        dsets['mix'], dloaders['mix'] = mixdset, mixdloader
-
-        target_train(dloaders, criterion, args, logging=True)

@@ -56,7 +56,7 @@ def get_optimizer(model, init_lr):
     return optimizer
 
 class Model:
-    def __init__(self, args, bottleneck_dim=256, logging=True):
+    def __init__(self, args, num_classes, bottleneck_dim=256, logging=True):
         self.F = ResBase()
         self.B = BottleNeck(self.F.in_features, bottleneck_dim)
         self.C = Classifier(bottleneck_dim, args.dataset['num_classes'])
@@ -133,7 +133,11 @@ class CrossEntropyLabelSmooth(nn.Module):
         self.reduction = reduction
         self.logsoftmax = nn.LogSoftmax(dim=1)
 
-        self.mix = args.config['model']['mix_ratio']
+        self.mix = (
+            args.config['model']['strategy_config']['mix_ratio']
+            if args.config['model']['strategy'] == 'mixup'
+            else None
+        )
     def _scatter_truth(self, truth):
         truth = torch.zeros((len(truth), self.num_classes)).scatter_(1, truth.unsqueeze(1).cpu(), 1)
         truth = truth.to(self.device)

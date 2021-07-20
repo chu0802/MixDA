@@ -24,7 +24,7 @@ def train_step(num_iter, num_epoches, dloader, model, criterion, args):
     return total_loss / total_length
 
 def target_train(dloaders, criterion, args, logging=True):
-    model = Model(args, logging=logging)
+    model = Model(args, num_classes=args.dataset['num_classes'], logging=logging)
     model.to()
 
     num_iter = 0
@@ -48,7 +48,7 @@ def target_train(dloaders, criterion, args, logging=True):
 
 def source_train_val(dloaders, criterion, args, logging=True):
     # TODO: load model in any checkpoint
-    model = Model(args, logging=logging)
+    model = Model(args, num_classes=args.dataset['num_classes'], logging=logging)
     model.to()
 
     num_iter = 0
@@ -70,8 +70,22 @@ def source_train_val(dloaders, criterion, args, logging=True):
         num_iter += 1
     return best_iter+1
 
+def target_unify_train(dloaders, criterion, args, logging=False):
+    model = Model(args, num_classes=args.dataset['num_classes']+1, logging=logging)
+    model.to()
+
+    num_iter = 0
+    best_val_acc = 0
+    best_iter = 0
+
+    num_epoches = args.config['train']['source']['num_epoches']
+
+    while num_iter < num_epoches:
+        train_loss = train_step(num_iter, num_epoches, dloaders['target_unify_train'], model, criterion, args)
+        acc_val = 100*cal_acc(dloaders['target_unify_val'], model, args)
+
 def source_train_full(num_epoches, dloader, criterion, args, logging=True):
-    model = Model(args, logging=logging)
+    model = Model(args, num_classes=args.dataset['num_classes'], logging=logging)
     model.to()
 
     print('---------- Full Training ----------')

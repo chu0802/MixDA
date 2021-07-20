@@ -56,7 +56,7 @@ def load_mix_data(source, target, target_label, args):
     g = torch.Generator()
     g.manual_seed(args.config['seed'])
 
-    mixdset = MixDataset(source, target, target_label, args.config['model']['mix_ratio'])
+    mixdset = MixDataset(source, target, target_label, args.config['model']['strategy_config']['mix_ratio'])
     mixdloader = DataLoader(mixdset, 
             batch_size=args.config['train']['bsize'],
             worker_init_fn=seed_worker,
