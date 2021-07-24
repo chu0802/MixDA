@@ -16,13 +16,13 @@ def prediction(loader, model, args, verbose=False):
             if verbose:
                 pbar.update(1)
     pred, true = torch.cat(pred), torch.cat(true)
-    pred = nn.Softmax(dim=1)(pred)
-    _, pred = torch.max(pred, 1)
+    raw_pred = nn.Softmax(dim=1)(pred)
+    _, pred = torch.max(raw_pred, 1)
 
-    return pred.squeeze().detach().cpu(), true.cpu()
+    return raw_pred.detach().cpu(), pred.detach().cpu(), true.cpu()
 
 def cal_acc(loader, model, args, verbose=False):
-    pred, true = prediction(loader, model, args, verbose)
+    _, pred, true = prediction(loader, model, args, verbose)
     acc = (pred.float() == true).float().mean()
     return acc.item()
 

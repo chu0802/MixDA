@@ -20,7 +20,7 @@ def arguments_parsing():
     parser.add_argument('-d', '--dataset', type=str, default='OfficeHome')
 
     # Mode Controlling
-    parser.add_argument('-m', '--mode', type=str, default='source_train', choices=['train', 'test'])
+    parser.add_argument('-m', '--mode', type=str, default='source_train', choices=['train', 'test', 'eval'])
 
     # Source training
     parser.add_argument('-se', '--source_num_epoches', type=int, default=-1)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
             model.load(args.config['model']['strategy_config']['init_labeler'])
             model.to()
 
-            pred, _ = prediction(dloaders['target_train'], model, args, verbose=True)
+            _, pred, _ = prediction(dloaders['target_train'], model, args, verbose=True)
 
             mixdset, mixdloader = load_mix_data(dsets['source'], dsets['target_train'], pred, args)
             dsets['mix'], dloaders['mix'] = mixdset, mixdloader
@@ -105,9 +105,16 @@ if __name__ == '__main__':
         elif args.strategy == 'target_unify':
             args.config['model']['strategy_config'] = stg_config
             criterion = CrossEntropyLabelSmooth(args)
-    else:
+    elif args.mode == 'test':
         model = Model(args, num_classes=args.dataset['num_classes'], logging=False)
         args.config['model'] = args.mdh.select_config()
         model.load(args.config['model'])
         model.to()
         print('Accuracy: %.2f%%' % (100*cal_acc(dloaders['target_test'], model, args, verbose=True)))
+    elif args.mode == 'eval':
+        model = Model(args, num_classes=args.dataset['num_classes'], logging=False)
+        args.config['model'] = args.mdh.select_config()
+        model.load(args.config['model'])
+        model.to()
+
+        raw_pred, _, true = prediction(dloaders['target_test'], model, args, verbose=True)
