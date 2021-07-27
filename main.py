@@ -12,6 +12,8 @@ from model import CrossEntropyLabelSmooth, Model
 from evaluation import cal_acc, prediction
 from util import config_loading, model_handler
 
+import matplotlib.pyplot as plt
+
 def arguments_parsing():
     parser = argparse.ArgumentParser()
     
@@ -117,4 +119,21 @@ if __name__ == '__main__':
         model.load(args.config['model'])
         model.to()
 
-        raw_pred, _, true = prediction(dloaders['target_test'], model, args, verbose=True)
+        raw_pred, pred, true = prediction(dloaders['target_test'], model, args, verbose=True)
+
+        max_prob = raw_pred[np.arange(len(raw_pred)), pred]
+        threshold = np.linspace(0, 1, 10, endpoint=False)
+        output = [(pred[max_prob >= th] == true[max_prob >= th]).float().mean().item() for th in threshold]
+
+        title = 'Source: %d, Target: %d' % (args.source, args.target)
+
+        fig, ax = plt.subplots()
+
+        ax.plot(threshold, output)
+        ax.set_title(title)
+        ax.set_xlabel('confidence ratio')
+        ax.set_ylabel('accuracy')
+
+        fig.savefig(title.replace(' ', '') + '.png')
+        
+        
