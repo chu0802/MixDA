@@ -11,6 +11,24 @@ strategy:
         init_labeler: null
         mix_ratio: 0.8
     target_unify: null
+    pseudolabel:
+        confidence_ratio: 0.9
+        mix_ratio: 0.8
+        ground_truth: False
+    partial_ground_truth:
+        ratio: 0.9
+        mix_ratio: 0.8
+    partial_answer:
+        ratio: 0.9
+    mix_conf_ratio:
+        init_labeler: null
+        mix_ratio: 0.8
+        confidence_ratio: 0.9
+    fixbi:
+        init_labeler: null
+        source_ratio: 0.8
+        target_ratio: 0.2
+        
 
 train:
     bsize: 32

@@ -84,7 +84,7 @@ def target_unify_train(dloaders, criterion, args, logging=False):
         train_loss = train_step(num_iter, num_epoches, dloaders['target_unify_train'], model, criterion, args)
         acc_val = 100*cal_acc(dloaders['target_unify_val'], model, args)
 
-def source_train_full(num_epoches, dloader, criterion, args, logging=True):
+def source_train_full(num_epoches, dloader, criterion, args, logging=True, eval_loader=None):
     model = Model(args, num_classes=args.dataset['num_classes'], logging=logging)
     model.to()
 
@@ -98,4 +98,10 @@ def source_train_full(num_epoches, dloader, criterion, args, logging=True):
 
         if (num_iter+1) % args.config['train']['store_interval'] == 0:
             model.save(epoch=num_iter)
+            if eval_loader:
+                test_acc = 100*cal_acc(eval_loader, model, args, verbose=False)
+                if logging:
+                    model.logger.add_scalar('Testing Accuracy', test_acc, num_iter)
+
+
     model.save()

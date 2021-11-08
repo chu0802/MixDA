@@ -7,10 +7,12 @@ from torch.utils.tensorboard import SummaryWriter
 import os
 from pathlib import Path
 
+Models = {'resnet50': models.resnet50, 'resnet101': models.resnet101}
+
 class ResBase(nn.Module):
-    def __init__(self):
+    def __init__(self, backbone='resnet50'):
         super(ResBase, self).__init__()
-        self.res = models.resnet50(pretrained=True)
+        self.res = Models[backbone](pretrained=True)
         self.in_features = self.res.fc.in_features
         self.res.fc = nn.Identity()
 
@@ -55,9 +57,13 @@ def get_optimizer(model, init_lr):
 
     return optimizer
 
+def get_source_model(source):
+    cfg = {'source': source, 'target': None, 'strategy': 'source_only', 'strategy_config': None}
+    return cfg
+
 class Model:
-    def __init__(self, args, num_classes, bottleneck_dim=256, logging=True):
-        self.F = ResBase()
+    def __init__(self, args, num_classes, bottleneck_dim=256, logging=True, backbone='resnet50'):
+        self.F = ResBase(backbone)
         self.B = BottleNeck(self.F.in_features, bottleneck_dim)
         self.C = Classifier(bottleneck_dim, args.dataset['num_classes'])
         self.optimizer = get_optimizer((self.F, self.B, self.C), args.config['train']['lr'])
@@ -125,19 +131,14 @@ class CrossEntropyLabelSmooth(nn.Module):
         epsilon (float): weight.
     """
 
-    def __init__(self, args, epsilon=0.1, reduction=True):
+    def __init__(self, args, epsilon=0.1, reduction=True, mix=None):
         super(CrossEntropyLabelSmooth, self).__init__()
         self.num_classes = args.dataset['num_classes']
         self.device = args.device
         self.epsilon = epsilon
         self.reduction = reduction
         self.logsoftmax = nn.LogSoftmax(dim=1)
-
-        self.mix = (
-            args.config['model']['strategy_config']['mix_ratio']
-            if args.config['model']['strategy'] == 'mixup'
-            else None
-        )
+        self.mix = mix
     def _scatter_truth(self, truth):
         truth = torch.zeros((len(truth), self.num_classes)).scatter_(1, truth.unsqueeze(1).cpu(), 1)
         truth = truth.to(self.device)

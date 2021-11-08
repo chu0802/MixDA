@@ -3,10 +3,27 @@ import pickle as pk
 import hashlib
 from pathlib import Path, PurePath
 import os
+import random
+import torch
+import numpy as np
 from collections import defaultdict
 
 def config_loading(cfg_path):
     return yaml.load(open(cfg_path, 'r'), Loader=yaml.FullLoader) if cfg_path is not None else None
+
+def interactive_input(question, return_type):
+    print(question, end=' ')
+    if return_type == bool:
+        print(' (y for yes, others for no)', end='')
+        return True if input() == 'y' else False
+    return return_type(input())
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 class model_handler:
     def __init__(self, model_dir, hash_table_path, title=None):
@@ -68,9 +85,10 @@ class model_handler:
     def get_ckpt_dir (self, cfg):
         return self.hash_table[self._hashing(cfg)]['ckpt_dir']
 
-    def get_ckpt(self, cfg, epoch=None):
+    def get_ckpt(self, cfg, epoch=None, name=None):
         ckpt_dir = self.get_ckpt_dir(cfg)
-        return ckpt_dir / ((str(epoch) if epoch else 'final') + '.pt')
+        ckpt_file = ('' if name is None else name) + (str(epoch) if epoch else 'final') + '.pt'
+        return ckpt_dir / ckpt_file
 
     def get_log(self, cfg):
         return self.get_ckpt_dir(cfg) / 'log'
