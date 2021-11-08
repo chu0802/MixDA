@@ -1,0 +1,46 @@
+model:
+    source: 0
+    target: 1
+    strategy: null
+
+#transfer settings
+transfer_loss_weight: 1.0
+
+# training settings
+seed: 1126
+bsize: 32
+num_iters: 1000
+eval_interval: 100
+
+# optimizer
+lr: 0.01
+momentum: 0.9
+weight_decay: 0.0005
+
+# lr_scheduler
+lr_gamma: 0.0003
+lr_decay: 0.75
+
+# mdh
+hash_table_path: /tmp2/cllab/chu/DA/data/config_hash_table.pkl
+
+# configurations
+dataset_cfg:
+    OfficeHome:
+        path: /tmp2/cllab/chu/DA/data/OfficeHome
+        num_classes: 65
+        domains:
+                - Art
+                - Clipart
+                - Product
+                - RealWorld
+strategy_cfg:
+    source_only: 
+        name: source_only
+    fixbi:
+        name: fixbi
+        init_labeler: null
+        source_ratio: 0.8
+        target_ratio: 0.2
+    dann:
+        name: dann

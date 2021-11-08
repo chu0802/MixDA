@@ -1,0 +1,54 @@
+seed: 1126
+model:
+    source: 0
+    target: 1
+    strategy: soucre_only
+    strategy_config: null
+
+strategy:
+    source_only: null
+    mixup:
+        init_labeler: null
+        mix_ratio: 0.8
+    target_unify: null
+    pseudolabel:
+        confidence_ratio: 0.9
+        mix_ratio: 0.8
+        ground_truth: False
+    partial_ground_truth:
+        ratio: 0.9
+        mix_ratio: 0.8
+    partial_answer:
+        ratio: 0.9
+    mix_conf_ratio:
+        init_labeler: null
+        mix_ratio: 0.8
+        confidence_ratio: 0.9
+    fixbi:
+        init_labeler: null
+        source_ratio: 0.8
+        target_ratio: 0.2
+        
+
+train:
+    bsize: 16
+    lr: 0.01
+    val_ratio: 0.1
+    store_interval: 10
+    source:
+        num_epoches: 50
+    target:
+        num_epoches: 500
+eval:
+    bsize: 64
+hash_table_path: /tmp2/cllab/chu/DA/data/config_hash_table.pkl
+datasets:
+    OfficeHome:
+        path: /tmp2/cllab/chu/DA/data/OfficeHome
+        num_classes: 65
+        domains:
+                - Art
+                - Clipart
+                - Product
+                - RealWorld
+
