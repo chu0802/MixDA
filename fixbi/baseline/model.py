@@ -114,10 +114,14 @@ class BaseModel(nn.Module):
     def load(self, cfg, epoch=None, name=None):
         ckpt_file = self.args.mdh.get_ckpt(cfg, epoch, name)
         states = torch.load(ckpt_file, map_location='cpu')
+        num_epoches = states['epoch']
+        del states['epoch']
+
         for k, v in states.items():
             self.models[k].load_state_dict(v)
-        if states['epoch']:
-            return states['epoch']  
+
+        if num_epoches:
+            return num_epoches
         
     def forward(self, *x):
         raise NotImplementedError
