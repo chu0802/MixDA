@@ -8,7 +8,7 @@ def train_dann(args, dloaders, model, optimizer, lr_scheduler, logging=False):
     for i in range(1, args.num_iters+1):
         print('Iterations: %3d/%3d' % (i, args.num_iters), end='\r')
         if i % args.eval_interval == 0:
-            c_acc = evaluation(tgt_test_dloader, model, args)
+            c_acc = evaluation(tgt_test_dloader, model)
             print('\nmodel acc: %.2f%%' % (100*c_acc))
             
             if logging:

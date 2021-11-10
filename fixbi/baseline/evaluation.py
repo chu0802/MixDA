@@ -1,6 +1,6 @@
 import torch
 
-def evaluation(loader, model, args):
+def evaluation(loader, model):
     pred, true = [], []
     model.eval()
     with torch.no_grad():
