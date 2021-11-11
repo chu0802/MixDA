@@ -16,11 +16,13 @@ from util import config_loading, model_handler, set_seed
 from dataset import load_data
 
 from train import train_dann
+from evaluation import evaluation
 
 def arguments_parsing():
     p = configargparse.ArgumentParser(config_file_parser_class=configargparse.YAMLConfigFileParser)
     p.add('--config', is_config_file=True, default='./config.yaml')
     p.add('--device', type=str, default='1')
+    p.add('--mode', type=str, default='train')
     
     # choosing strategies, and models, and datasets
     p.add('--dataset', type=str, default='OfficeHome')
@@ -78,17 +80,34 @@ def get_dloaders(args):
 def main(args):
     os.environ['CUDA_VISIBLE_DEVICES'] = args.device
     set_seed(args.seed)
-    
-    if args.strategy == 'dann':
-        model = DANN_Model(args, logging=True)
-        model.to()
 
-        optimizer = get_optimizer(model, args)
-        lr_scheduler = get_scheduler(optimizer, args)
+    if args.mode == 'train':
+        if args.strategy == 'dann':
+            model = DANN_Model(args, logging=True)
+            model.to()
 
-        train_dann(args, get_dloaders(args), model, optimizer, lr_scheduler, logging=model.logging)
-    elif args.strategy == 'fixbi':
-        pass
+            optimizer = get_optimizer(model, args)
+            lr_scheduler = get_scheduler(optimizer, args)
+
+            train_dann(args, get_dloaders(args), model, optimizer, lr_scheduler, logging=model.logging)
+        elif args.strategy == 'fixbi':
+            pass
+    elif args.mode == 'test':
+        model_cfg_list = [{'source': i, 'target': j, 'strategy': {'name': 'dann'}} for i in range(4) for j in range(4) if i != j]
+        for model_cfg in model_cfg_list:
+            # replace the model config to the correct one
+            args.model = model_cfg
+
+            model = DANN_Model(args, logging=False)
+            model.load(model_cfg, epoch=1000)
+            model.to()
+
+            _, _, test_dloader = get_dloaders(args)
+            
+            print('source %d, target: %d' % (model_cfg['source'], model_cfg['target']))
+            c_acc = evaluation(test_dloader, model)
+            print('\tmodel acc: %.2f%%' % (100 * c_acc))
+        
     
 if __name__ == '__main__':
     args = arguments_parsing()
