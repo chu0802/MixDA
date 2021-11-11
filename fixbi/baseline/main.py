@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from model import DANN_Model
+from model import DANN_Model, Basic_Model
 from util import config_loading, model_handler, set_seed
 from dataset import load_data
 
@@ -92,6 +92,15 @@ def main(args):
             train_dann(args, get_dloaders(args), model, optimizer, lr_scheduler, logging=model.logging)
         elif args.strategy == 'fixbi':
             pass
+        elif args.strategy == 'source_only':
+            model = Basic_Model(args, logging=True)
+            model.to()
+
+            optimizer = get_optimizer(model, args)
+            lr_scheduler = get_scheduler(optimizer, args)
+
+            train_source_only(args, get_dloaders(args), model, optimizer, lr_scheduler, logging=model.logging)
+            
     elif args.mode == 'test':
         model_cfg_list = [{'source': i, 'target': j, 'strategy': {'name': 'dann'}} for i in range(4) for j in range(4) if i != j]
         for model_cfg in model_cfg_list:

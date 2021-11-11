@@ -28,3 +28,28 @@ def train_dann(args, dloaders, model, optimizer, lr_scheduler, logging=False):
         
         optimizer.step()
         lr_scheduler.step()
+
+def train_source_only(args, dloaders, model, optimizer, lr_scheduler, logging=False):
+    model.train()
+    src_dloader, _, tgt_test_dloader = dloaders
+    iter_src = iter(src_dloader)
+
+    for i in range(1, args.num_iters+1):
+        print('Iterations: %3d/%3d' % (i, args.num_iters), end='\r')
+        if i % args.eval_interval == 0:
+            c_acc = evaluation(tgt_test_dloader, model)
+            print('\nmodel acc: %.2f%%' % (100*c_acc))
+            
+            if logging:
+                model.save(epoch=i)
+                model.logger.add_scalar('Testing Accuracy', c_acc, i)
+            model.train()
+        
+        sx, sy = next(iter_src)
+        sx, sy = sx.cuda(), sy.cuda()
+        clf_loss = model(sx, sy)
+
+        optimizer.zero_grad()
+        clf_loss.backward()
+        optimizer.step()
+        lr_scheduler.step()

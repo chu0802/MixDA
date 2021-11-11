@@ -163,13 +163,16 @@ class DANN_Model(BaseModel):
     
     def predict(self, x):
         return self.models['C'](self.models['B'](self.models['F'](x)))
-    
-class Fixbi_Model(BaseModel):
+
+class Basic_Model(BaseModel):
     def __init__(self, args, bottleneck_dim=256, logging=True, backbone='resnet50'):
         super(DANN_Model, self).__init__(args=args, logging=logging)
         self.models['F'] = ResBase(backbone)
         self.models['B'] = BottleNeck(self.models['F'].in_features, bottleneck_dim)
         self.models['C'] = Classifier(bottleneck_dim, args.dataset['num_classes'])
+
+        self.criterion = nn.CrossEntropyLoss()
         
-    def forward(self, x):
-        return self.models['C'](self.models['B'](self.models['F'](x)))
+    def forward(self, x, y):
+        output = self.models['C'](self.models['B'](self.models['F'](x)))
+        return self.criterion(output, y)
